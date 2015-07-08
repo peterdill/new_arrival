@@ -1,0 +1,79 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-input/iron-input.html">
+<link rel="import" href="date-validator.html">
+
+<dom-module id="date-input">
+
+  <style>
+
+    :host {
+      display: inline-block;
+    }
+
+    input[is="iron-input"] {
+      font: inherit;
+      outline: none;
+      box-shadow: none;
+      border: none;
+      width: auto;
+      text-align: center;
+    }
+
+  </style>
+
+  <template>
+
+    <date-validator></date-validator>
+
+    <input is="iron-input" maxlength="4" bind-value="{{_year}}"  size="4" aria-label="Year">
+    -
+    <input is="iron-input" maxlength="2" bind-value="{{_month}}" size="2" aria-label="Month">
+    -
+    <input is="iron-input" maxlength="2" bind-value="{{_day}}"   size="2" aria-label="Day">
+
+  </template>
+
+</dom-module>
+
+<script>
+(function() {
+
+  Polymer({
+
+    is: 'date-input',
+
+    behaviors: [
+      Polymer.IronValidatableBehavior
+    ],
+
+    properties: {
+
+      value: {
+        notify: true,
+        type: String
+      },
+
+      _year: {
+//        value: new Date().getFullYear().toString(),
+        type: String
+      },
+
+      _month: {
+//        value: new Date().getMonth().toString(),
+        type: String
+      },
+
+      _day: {
+//        value: new Date().getDate().toString(),
+        type: String
+      },
+
+      validator: {
+        type: String,
+        value: 'date-validator'
+      }
+
+    },
+  });
+})();
+</script>

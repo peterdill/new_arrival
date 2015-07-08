@@ -1,0 +1,590 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-signals/iron-signals.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="../../bower_components/iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../app-globals/app-globals.html">
+<link rel="import" href="milestones-data.html">
+
+<dom-module id="arrival-milestones">
+  <style>
+    :host {
+      display: block;
+    }
+
+    paper-button {
+      margin: 2px;
+      width: 100%;
+    }
+    .category-title {
+      color: #888;
+      padding: 10px 15px;
+      margin-top: 20px;
+      background-color: #f3f3f3;
+      border: 1px solid #dedede;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+      width: 100%;
+      text-align: left;
+    }
+    .section-empty {
+      background-color: #f8f8f8;
+    }
+    .milestone-reached {
+      background-color: #edf;
+    }
+    .milestone-overdue {
+      background-color: #fff0d0;
+    }
+    .milestone-due {
+      background-color: #dfd;
+    }
+    .milestone-coming {
+      background-color: #def;
+    }
+
+    .debug {
+      font-size: 10px;
+    }
+  </style>
+  <template>
+    <app-globals globals="{{globals}}" data="{{data}}"></app-globals>
+
+    <iron-localstorage
+        name="arrival-milestones"
+        id="milestonesStorage"
+        value="{{milestones}}"
+        autoSaveDisabled=true
+        on-iron-localstorage-load-empty="initializeMilestones"
+    ></iron-localstorage>
+<!--
+    <paper-input
+        value="{{globals.maxOverdue}}"
+        label="'Milestones overdue' items"
+        auto-validate
+    ></paper-input>
+-->
+    <paper-input
+        value="{{globals.babyname::input}}"
+        label="Baby's Name"
+        validator="letters-only"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.gender::input}}"
+        label="Gender (female/male)"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.birthdate::input}}"
+        label="Birth Date (YYYY-MM-DD)"
+        auto-validate
+    ></paper-input>
+
+    <div class="debug">
+      <span>{{now}}</span> <br/>
+      Baby <span>{{genderName}}</span> <span>{{globals.babyname}}</span>
+      born on <span>{{globals.birthdate}}</span>
+      is now  <span>{{toFixed(ageInDays, 0)}}</span> days old.<br/>
+      Median height: <span>{{toFixed(percentiles.height.p50, 1)}}</span> cm
+      Median weight: <span>{{toFixed(percentiles.weight.p50, 1)}}</span> kg
+    </div>
+
+    <hr/>
+    <span>{{toFixed(ageInDays, 2)}}</span>
+
+<!--    <hr/>
+    <div>
+      No data set for your baby. Please go to <a href="/settings">Settings</a>
+      and fill in the data.
+    </div>
+-->
+    <!-------------------------------------------- REACHED -->
+    <hr/>
+    <div>
+      <button id="toggle-reached" class="category-title" on-click="toggleSection">
+        Milestones reached
+      </button>
+
+      <iron-collapse id="collapsible-reached" opened>
+
+        <template is="dom-if" if="{{isEmptyList.reached}}">
+          <paper-button class="section-empty" noink>
+            None yet
+          </paper-button>
+        </template>
+
+        <template is="dom-repeat" items="{{milestones.reached}}">
+          <div>
+
+            <paper-button
+                class="milestone-reached"
+                on-click="toggleReached"
+                title="{{item.description}}"
+                raised
+                noink
+            >
+              <span>{{item.title}}</span>
+              <br/>
+              [<span>{{item.dateReached}}</span>]
+            </paper-button>
+
+          </div>
+        </template>
+      </iron-collapse>
+    </div>
+
+    <!-------------------------------------------- OVERDUE -->
+    <hr/>
+    <div>
+      <button id="toggle-overdue" class="category-title" on-click="toggleSection">
+        Milestones overdue
+      </button>
+<!--
+      <paper-icon-button
+          icon="remove"
+          id="decrease-maxOverdue"
+          on-click="changeAmount">-
+      </paper-icon-button>
+      <paper-icon-button
+          icon="add"
+          id="increase-maxOverdue"
+          on-click="changeAmount">+
+      </paper-icon-button>
+-->
+      <iron-collapse id="collapsible-overdue" opened>
+
+        <template is="dom-if" if="{{isEmptyList.overdue}}">
+          <paper-button class="section-empty" noink>
+            None
+          </paper-button>
+        </template>
+
+        <template is="dom-repeat" items="{{milestones.overdue}}">
+          <div>
+
+            <paper-button
+                class="milestone-overdue"
+                on-click="toggleReached"
+                title="{{item.description}}"
+                raised
+                noink
+            >
+              <span>{{item.title}}</span>
+              <br/>
+              <span>{{toFixed(item.early, 1)}}</span>
+              <span>{{toFixed(item.late, 1)}}</span>
+              [<span>{{daysUntil(item.late)}}</span>d]
+            </paper-button>
+
+          </div>
+        </template>
+      </iron-collapse>
+    </div>
+
+    <!-------------------------------------------- DUE -->
+    <hr/>
+    <div>
+      <button id="toggle-due" class="category-title" on-click="toggleSection">
+        Milestones due
+      </button>
+
+      <iron-collapse id="collapsible-due" opened>
+
+        <template is="dom-if" if="{{isEmptyList.due}}">
+          <paper-button class="section-empty" noink>
+            Currently none
+          </paper-button>
+        </template>
+
+        <template is="dom-repeat" items="{{milestones.due}}">
+          <div>
+
+            <paper-button
+                class="milestone-due"
+                on-click="toggleReached"
+                title="{{item.description}}"
+                raised
+                noink
+            >
+              <span>{{item.title}}</span>
+              <br/>
+              <span>{{toFixed(item.early, 1)}}</span>
+              <span>{{toFixed(item.late, 1)}}</span>
+              [<span>{{daysUntil(item.late)}}</span>d]
+            </paper-button>
+
+          </div>
+        </template>
+      </iron-collapse>
+    </div>
+
+    <!-------------------------------------------- COMING UP -->
+    <hr/>
+    <div>
+      <button id="toggle-coming" class="category-title" on-click="toggleSection">
+        Milestones coming up
+      </button>
+
+      <iron-collapse id="collapsible-coming" opened>
+
+        <template is="dom-if" if="{{isEmptyList.coming}}">
+          <paper-button class="section-empty" noink>
+            Currently none
+          </paper-button>
+        </template>
+
+        <template is="dom-repeat" items="{{milestones.coming}}">
+          <div>
+
+            <paper-button
+                class="milestone-coming"
+                on-click="toggleReached"
+                title="{{item.description}}"
+                raised
+                noink
+            >
+              <span>{{item.title}}</span>
+              <br/>
+              <span>{{toFixed(item.early, 1)}}</span>
+              <span>{{toFixed(item.late, 1)}}</span>
+              [<span>{{daysUntil(item.early)}}</span>d
+              -
+              <span>{{daysUntil(item.late)}}</span>d]
+            </paper-button>
+
+          </div>
+        </template>
+        </iron-collapse>
+    </div>
+
+  </template>
+</dom-module>
+<script>
+/*globals month, milestonesData, _ */
+(function() {
+  Polymer({
+    is: 'arrival-milestones',
+    behaviors: [GlobalsBehaviour],  // jshint ignore:line
+
+    properties: {
+      ageInDays: {
+        type: String,
+        value: NaN,
+        notify: true
+      },
+      now: {
+        type: String,
+        value: (new Date()).toISOString(),
+        notify: true
+      },
+      percentiles: {
+        type: Object,
+        value: {}
+      },
+      milestones: {
+        type: Object,
+        value: {},
+        notify: true
+      },
+      milestonesShown: {
+        type: Object,
+        value: {
+          reached: [],
+          overdue: [],
+          coming: []
+        },
+        notify: true
+      },
+      isEmptyList: {
+        type: Object,
+        value: {
+          reached: true,
+          overdue: true,
+          due: true,
+          coming: true
+        },
+        notify: true
+      },
+      genderName: '',
+      pronoun: 'it',
+      pronounObj: 'it',
+      pronounPos: 'its',
+      pronounRef: 'itself'
+    },
+
+    ready: function() {
+      this.updateTime();
+    },
+
+    updateTime: function() {
+      this.now = (new Date()).toISOString();
+      this.async(this.updateTime, 60000);
+      console.log('...');
+      console.log(this.now);
+    },
+
+    initializeMilestones: function() {
+      this.milestones = {
+        overdue: [],
+        due: [],
+        coming: milestonesData,
+        reached: []
+      };
+      console.log(this.milestones);
+      this.setMilestones();
+    },
+
+
+    // Listeners
+
+    listeners: {
+      'milestonesStorage.iron-localstorage-load' : 'milestonesLoaded'
+    },
+
+    milestonesLoaded: function() {
+//      console.log('milestones localstorage loaded...');
+      this.setMilestones();
+    },
+
+
+    // Observers
+
+    observers: [
+        'setAgeInDays(globals.birthdate, now)',
+        'setPercentiles(globals.gender, ageInDays)',
+        'setGender(globals.gender)',
+        'setMilestonesShown(globals.maxReached, globals.maxOverdue, globals.maxComing)'
+    ],
+
+    setAgeInDays: function(birthdate, now) {
+      this.ageInDays = ((new Date(now) - new Date(birthdate))/1000/60/60/24);
+    },
+
+    setPercentiles: function(gender, ageInDays) {
+      var x = ageInDays/month;  // age in months
+      if (gender === 'male') {
+        this.percentiles = {
+          'height': {
+            'p10': -2.604E-12*Math.pow(x,10)+3.953E-10*Math.pow(x,9)-2.212E-8*Math.pow(x,8)+6.016E-7*Math.pow(x,7)-9.172E-6*Math.pow(x,6)+1.291E-4*Math.pow(x,5)-2.965E-3*Math.pow(x,4)+0.057*Math.pow(x,3)-0.658*Math.pow(x,2)+5.303*x+47.501,
+            'p50': -8.997E-11*Math.pow(x,10)+1.062E-8*Math.pow(x,9)-5.292E-7*Math.pow(x,8)+1.451E-5*Math.pow(x,7)-2.395E-4*Math.pow(x,6)+2.485E-3*Math.pow(x,5)-0.018*Math.pow(x,4)+0.109*Math.pow(x,3)-0.752*Math.pow(x,2)+5.435*x+49.904,
+            'p90': -2.301E-10*Math.pow(x,10)+2.762E-8*Math.pow(x,9)-1.407E-6*Math.pow(x,8)+3.956E-5*Math.pow(x,7)-6.701E-4*Math.pow(x,6)+7.038E-3*Math.pow(x,5)-0.047*Math.pow(x,4)+0.215*Math.pow(x,3)-0.957*Math.pow(x,2)+5.678*x+52.302
+          },
+          'weight': {
+            'p10': 4.708E-11*Math.pow(x,10)-5.764E-9*Math.pow(x,9)+3.062E-7*Math.pow(x,8)-9.26E-6*Math.pow(x,7)+1.755E-4*Math.pow(x,6)-2.151E-3*Math.pow(x,5)+0.017*Math.pow(x,4)-0.074*Math.pow(x,3)+0.088*Math.pow(x,2)+0.971*x+2.799,
+            'p50': 1.361E-10*Math.pow(x,10)-1.719E-8*Math.pow(x,9)+9.274E-7*Math.pow(x,8)-2.789E-5*Math.pow(x,7)+5.113E-4*Math.pow(x,6)-5.86E-3*Math.pow(x,5)+0.041*Math.pow(x,4)-0.159*Math.pow(x,3)+0.197*Math.pow(x,2)+1.138*x+3.298,
+            'p90': 9.674E-11*Math.pow(x,10)-1.231E-8*Math.pow(x,9)+6.739E-7*Math.pow(x,8)-2.074E-5*Math.pow(x,7)+3.927E-4*Math.pow(x,6)-4.69E-3*Math.pow(x,5)+0.035*Math.pow(x,4)-0.141*Math.pow(x,3)+0.173*Math.pow(x,2)+1.251*x+3.998
+          }
+        };
+
+      } else {
+        // female, also used if gender not set
+        this.percentiles = {
+          'height': {
+            'p10': -1.310E-10*Math.pow(x,10)+1.574E-8*Math.pow(x,9)-8.103E-7*Math.pow(x,8)+2.340E-5*Math.pow(x,7)-4.178E-4*Math.pow(x,6)+4.822E-3*Math.pow(x,5)-0.037*Math.pow(x,4)+0.209*Math.pow(x,3)-0.981*Math.pow(x,2)+5.205*x+46.8,
+            'p50': -9.614E-11*Math.pow(x,10)+1.201E-8*Math.pow(x,9)-6.427E-7*Math.pow(x,8)+1.926E-5*Math.pow(x,7)-3.559E-4*Math.pow(x,6)+4.243E-3*Math.pow(x,5)-0.034*Math.pow(x,4)+0.198*Math.pow(x,3)-0.969*Math.pow(x,2)+5.328*x+49.15,
+            'p90': -1.037E-10*Math.pow(x,10)+1.340E-8*Math.pow(x,9)-7.391E-7*Math.pow(x,8)+2.276E-5*Math.pow(x,7)-4.299E-4*Math.pow(x,6)+5.189E-3*Math.pow(x,5)-0.041*Math.pow(x,4)+0.231*Math.pow(x,3)-1.061*Math.pow(x,2)+5.559*x+51.501
+          },
+          'weight': {
+            'p10': -2.862E-11*Math.pow(x,10)+1.908E-9*Math.pow(x,9)-5.025E-9*Math.pow(x,8)-3.032E-6*Math.pow(x,7)+1.196E-4*Math.pow(x,6)-2.19E-3*Math.pow(x,5)+0.022*Math.pow(x,4)-0.117*Math.pow(x,3)+0.244*Math.pow(x,2)+0.642*x+2.702,
+            'p50': 5.761E-11*Math.pow(x,10)-6.736E-9*Math.pow(x,9)+3.361E-7*Math.pow(x,8)-9.39E-6*Math.pow(x,7)+1.621E-4*Math.pow(x,6)-1.797E-3*Math.pow(x,5)+0.013*Math.pow(x,4)-0.05*Math.pow(x,3)+0.027*Math.pow(x,2)+1.014*x+3.2,
+            'p90': -4.427E-12*Math.pow(x,10)-3.415E-11*Math.pow(x,9)+3.873E-8*Math.pow(x,8)-2.482E-6*Math.pow(x,7)+7.492E-5*Math.pow(x,6)-1.277E-3*Math.pow(x,5)+0.013*Math.pow(x,4)-0.066*Math.pow(x,3)+0.086*Math.pow(x,2)+1.065*x+3.9
+          }
+        };
+      }
+      console.log(month, this.ageInDays, gender, x, this.percentiles.height.p50, this.percentiles.weight.p50);
+
+      // recalculate milestones, if initialized
+      if (this.milestones.hasOwnProperty('due')) {
+        this.setMilestones();
+      }
+    },
+
+    // Overrides this.milestones using Polymer's array methods
+    updateMilestones: function(m) {
+      for (var category in this.milestones) {
+        if (this.milestones.hasOwnProperty(category)) {
+          console.log('---', category);
+          this.splice('milestones.'+category, 0, this.milestones[category].length);
+
+          // Polymer has no .concat()
+          for (var i=0; i < m[category].length; i++) {
+            this.push('milestones.'+category, m[category][i]);
+//            console.log('+', m[category][i].title);
+          }
+        }
+      }
+      this.$.milestonesStorage.save();
+      this.setMilestonesShown();
+
+    },
+
+    // Update milestones
+    setMilestones: function() {
+      // empty dict to file milestones in
+      var m = {
+        overdue: [],
+        due: [],
+        coming: [],
+        reached: []
+      };
+      // flat array of all milestones
+      var flat = [];
+      for (var category in this.milestones) {
+        if (this.milestones.hasOwnProperty(category)) {
+//          console.log(this.milestones[category]);
+          flat = flat.concat(this.milestones[category]);
+        }
+      }
+      console.log('>>> setMilestones');
+      this.categorizeMilestone(flat, m);
+      this.updateMilestones(m);
+      console.log('<<<');
+    },
+
+    categorizeMilestone: function(milestonesFlat, milestones) {
+      console.log('=== before categorizeMilestone\n', milestonesFlat, milestones);
+      var self = this;
+
+      milestones.reached = milestones.reached.concat(
+          _.remove(milestonesFlat, function(milestone) {
+            return milestone.dateReached !== '';
+          })
+      );
+      milestones.coming = milestones.coming.concat(
+          _.remove(milestonesFlat, function(milestone) {
+            return milestone.early > self.ageInDays;
+          })
+      );
+      milestones.overdue = milestones.overdue.concat(
+          _.remove(milestonesFlat, function(milestone) {
+            return milestone.late < self.ageInDays;
+          })
+      );
+      // whatever si left is due
+      milestones.due = milestones.due.concat(milestonesFlat);
+
+      // sort each category
+      milestones.reached = _.sortByAll(milestones.reached, ['dateReached', 'early', 'late', 'title']);
+      milestones.coming = _.sortByAll(milestones.coming, ['early', 'late', 'title']);
+      milestones.overdue = _.sortByAll(milestones.overdue, ['late', 'early', 'title']);
+      milestones.due = _.sortByAll(milestones.due, ['early', 'late', 'title']);
+
+      // set empty list dict
+      this.isEmptyList = {
+        reached: milestones.reached.length === 0,
+        overdue: milestones.overdue.length === 0,
+        due:     milestones.due.length === 0,
+        coming:  milestones.coming.length === 0
+      };
+      console.log('=== after\n', milestonesFlat, milestones);
+    },
+
+    setGender: function(gender) {
+      if (gender === 'female') {
+        this.genderName = 'girl';
+        this.pronoun = 'she';
+        this.pronounObj = 'her';
+        this.pronounPos = 'her';
+        this.pronounRef = 'herself';
+      } else if (gender === 'male') {
+        this.genderName = 'boy';
+        this.pronoun = 'he';
+        this.pronounObj = 'him';
+        this.pronounPos = 'his';
+        this.pronounRef = 'himself';
+      } else {
+        this.genderName = '';
+        this.pronoun = 'it';
+        this.pronounObj = 'it';
+        this.pronounPos = 'its';
+        this.pronounRef = 'itself';
+      }
+    },
+
+    updateMilestonesShown: function(category, maxItems, sliceFromEnd) {
+      console.log('splicing');
+      this.splice('milestonesShown.'+category, 0, this.milestonesShown[category].length);
+      var listSlice = [];
+      if (sliceFromEnd) {
+        listSlice = this.milestones[category].slice(-maxItems);
+      } else {
+        listSlice = this.milestones[category].slice(0, maxItems);
+      }
+      for (var i=0; i < listSlice.length; i++) {
+        console.log(category, listSlice.length, maxItems, listSlice[i].title);
+        this.push('milestonesShown.'+category, listSlice[i]);
+      }
+    },
+
+    // Set max amounts of milestones shown for reached, overdue and coming
+    // loads with empty data until this.milestones is loaded when
+    // milestonesLoaded is triggered
+    setMilestonesShown: function(maxReached, maxOverdue, maxComing) {
+      console.log('********************** updating miletsones shown');
+      console.log(this.milestonesShown, maxReached, maxOverdue, maxComing);
+      if (typeof(this.milestones.reached) !== 'undefined') {
+        this.updateMilestonesShown('reached', 5, true);
+        this.updateMilestonesShown('overdue', 5, true);
+        this.updateMilestonesShown('coming', 5, false);
+      }
+      console.log(this.milestonesShown);
+    },
+
+    // --- Helpers
+
+    // Convert float to fixed
+    // TODO: Age in days should only count full days
+    toFixed: function(x, decimals) {
+      // assert typeof x === 'float'
+      return x.toFixed(decimals);
+    },
+
+    // Calculate integer value difference
+    daysUntil: function(a) {
+      return (a-this.ageInDays).toFixed(0);
+    },
+
+    toggleSection: function(e) {
+      var action = e.target.id.split('-');  // toggle-sectionname
+      var targetCollapsible = 'collapsible-'+action[1];  // collapsible-sectionname
+      console.log(' collapsing', targetCollapsible);
+      this.$[targetCollapsible].toggle();
+      console.log(this.milestones[action[1]].length, _.map(this.milestones[action[1]], 'title'));
+    },
+
+    toggleReached: function(e) {
+      console.log(e.model.item, e.model.item.dateReached);
+      if (e.model.item.dateReached === '') {
+        e.model.item.dateReached = (new Date()).toISOString();
+      } else {
+        e.model.item.dateReached = '';
+      }
+      this.setMilestones();
+    },
+
+    changeAmount: function(e) {
+      var action = e.target.parentElement.id.split('-');
+      console.log('click', action, this.globals);
+      this.globals.gender = 'male';
+/*
+      if (action[0] === 'decrease') {
+        console.log(action[0], action[1], this.globals[action[1]]);
+        this.globals.maxOverdue = 0;
+//        this.globals[action[1]] = this.globals[action[1]]-1;
+      } else if (action[0] === 'increase') {
+        console.log(action[0], action[1], this.globals[action[1]]);
+        this.globals.maxOverdue = 5;
+//        this.globals[action[1]] = this.globals[action[1]]+1;
+      }
+      console.log(this.globals);
+*/
+    },
+
+  });
+})();
+</script>

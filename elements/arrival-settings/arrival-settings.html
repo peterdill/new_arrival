@@ -1,0 +1,72 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input-container.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input-error.html">
+<link rel="import" href="../app-globals/app-globals.html">
+<link rel="import" href="../app-globals/globals-behavior.html">
+<link rel="import" href="date-input.html">
+
+<dom-module id="arrival-settings">
+  <style>
+    :host {
+      display: block;
+    }
+  </style>
+  <template>
+    <app-globals data="{{data}}" globals="{{globals}}"></app-globals>
+    <letters-only></letters-only>
+
+    <div><span>{{globals.babyname}}</span> born on <span>{{globals.birthdate}}</span></div>
+    <paper-input
+        value="{{globals.babyname::input}}"
+        label="Baby's Name"
+        validator="letters-only"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.gender::input}}"
+        label="Gender"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.birthdate::input}}"
+        label="Birth Date (YYYY-MM-DD)"
+        auto-validate
+    ></paper-input>
+
+    <paper-input
+        value="{{globals.maxReached}}"
+        label="'Milestones reached' items"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.maxOverdue}}"
+        label="'Milestones overdue' items"
+        auto-validate
+    ></paper-input>
+    <paper-input
+        value="{{globals.maxComing}}"
+        label="'Milestones coming up' items"
+        auto-validate
+    ></paper-input>
+<!--
+    <input type="text" value="{{data.birthdate::keyup}}" />
+    <paper-input-container always-float-label auto-validate attr-for-value="value">
+      <label>Birth Date</label>
+      <date-input value="{{data.birthdate}}" class="paper-input-input"></date-input>
+      <paper-input-error>Invalid date!</paper-input-error>
+    </paper-input-container>
+-->
+  </template>
+</dom-module>
+<script>
+/*globals GlobalsBehaviour */
+(function() {
+  Polymer({
+    is: 'arrival-settings',
+    behaviors: [GlobalsBehaviour],
+
+    properties: {
+    },
+  });
+})();
+</script>

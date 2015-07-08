@@ -61,22 +61,15 @@
         autoSaveDisabled=true
         on-iron-localstorage-load-empty="initializeMilestones"
     ></iron-localstorage>
-<!--
+
     <paper-input
         value="{{globals.maxOverdue}}"
         label="'Milestones overdue' items"
         auto-validate
     ></paper-input>
--->
-    <paper-input
-        value="{{globals.babyname::input}}"
-        label="Baby's Name"
-        validator="letters-only"
-        auto-validate
-    ></paper-input>
     <paper-input
         value="{{globals.gender::input}}"
-        label="Gender (female/male)"
+        label="Gender"
         auto-validate
     ></paper-input>
     <paper-input
@@ -524,10 +517,13 @@
     // Set max amounts of milestones shown for reached, overdue and coming
     // loads with empty data until this.milestones is loaded when
     // milestonesLoaded is triggered
-    setMilestonesShown: function(maxReached, maxOverdue, maxComing) {
-      console.log('********************** updating miletsones shown');
-      console.log(this.milestonesShown, maxReached, maxOverdue, maxComing);
+    setMilestonesShown: function(maxReached, maxOverdue, maxComing) {  // jshint ignore:line
+      console.log('********************** updating milestones shown');
+      console.log(this.milestonesShown);
       if (typeof(this.milestones.reached) !== 'undefined') {
+//        this.updateMilestonesShown('reached', maxReached, true);
+//        this.updateMilestonesShown('overdue', maxOverdue, true);
+//        this.updateMilestonesShown('coming', maxComing, false);
         this.updateMilestonesShown('reached', 5, true);
         this.updateMilestonesShown('overdue', 5, true);
         this.updateMilestonesShown('coming', 5, false);

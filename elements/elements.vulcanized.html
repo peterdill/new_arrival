@@ -923,9 +923,6 @@ module.exports = Array.isArray || function (arr) {
 <script>
   window.addEventListener('WebComponentsReady', function() {
 
-    // We use Page.js for routing. This is a Micro
-    // client-side router inspired by the Express router
-    // More info: https://visionmedia.github.io/page.js/
     page('/', function () {
       app.route = 'home';
     });
@@ -934,11 +931,11 @@ module.exports = Array.isArray || function (arr) {
       app.route = 'settings';
     });
 
-    page('/contact', function () {
-      app.route = 'contact';
+    page('/help', function () {
+      app.route = 'help';
     });
 
-    page('/contact/:name', function (data) {
+    page('/help/:name', function (data) {
       app.route = 'contact-info';
       app.params = data.params;
     });
@@ -947,12 +944,6 @@ module.exports = Array.isArray || function (arr) {
     page({
       hashbang: true
     });
-
-    console.log(window.location.pathname);
-    if (window.location.pathname !== '/') {
-      page.base(window.location.pathname);
-    }
-
 
   });
 </script>
